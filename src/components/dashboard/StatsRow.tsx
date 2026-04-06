@@ -95,7 +95,6 @@ export default function StatsRow() {
               s.key !== "total" && "hover:opacity-80 cursor-pointer",
               s.key === "total" && "cursor-default"
             )}
-            style={isActive ? { ringColor: "currentColor" } : {}}
           >
             <div className={cn("text-3xl font-serif font-bold leading-none mb-1.5", s.color)}>
               {count}

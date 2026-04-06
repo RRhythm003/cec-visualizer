@@ -185,53 +185,62 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
           )}
 
           {/* Write-off specific */}
-          {p.category === "Write-Off" && p.category_data && (
-            <section>
-              <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
-                Write-Off Details
-              </h3>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                <DataRow label="Write-Off Amount" value={formatCrore(p.write_off_amount)} bold />
-                <DataRow label="Board Meeting Ref" value={String(p.category_data.board_meeting_ref ?? "—")} />
-                <DataRow label="ARAE Status" value={String(p.category_data.arae_status ?? "—")} />
-                <DataRow label="Post-WO Payments" value={String(p.category_data.post_wo_payments ?? "—")} />
-              </div>
-            </section>
-          )}
+          {p.category === "Write-Off" && p.category_data && (() => {
+            const cd = p.category_data as Record<string, string | undefined>;
+            return (
+              <section>
+                <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
+                  Write-Off Details
+                </h3>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  <DataRow label="Write-Off Amount" value={formatCrore(p.write_off_amount)} bold />
+                  <DataRow label="Board Meeting Ref" value={String(cd.board_meeting_ref ?? "—")} />
+                  <DataRow label="ARAE Status" value={String(cd.arae_status ?? "—")} />
+                  <DataRow label="Post-WO Payments" value={String(cd.post_wo_payments ?? "—")} />
+                </div>
+              </section>
+            );
+          })()}
 
           {/* Pricing Change specific */}
-          {p.category === "Pricing Change" && p.category_data && (
-            <section>
-              <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
-                Rate Change Details
-              </h3>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                <DataRow label="Existing Rate" value={`${p.category_data.existing_rate}%`} />
-                <DataRow label="Proposed Rate" value={`${p.category_data.proposed_rate}%`} />
-                {p.category_data.approved_rate && (
-                  <DataRow label="Approved Rate" value={`${p.category_data.approved_rate}%`} bold />
-                )}
-                <DataRow label="Effective Date" value={String(p.category_data.effective_date ?? "—")} />
-                <DataRow label="IRR Impact" value={String(p.category_data.irr_impact ?? "—")} />
-              </div>
-            </section>
-          )}
+          {p.category === "Pricing Change" && p.category_data && (() => {
+            const cd = p.category_data as Record<string, string | number | undefined>;
+            return (
+              <section>
+                <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
+                  Rate Change Details
+                </h3>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  <DataRow label="Existing Rate" value={`${cd.existing_rate}%`} />
+                  <DataRow label="Proposed Rate" value={`${cd.proposed_rate}%`} />
+                  {cd.approved_rate && (
+                    <DataRow label="Approved Rate" value={`${cd.approved_rate}%`} bold />
+                  )}
+                  <DataRow label="Effective Date" value={String(cd.effective_date ?? "—")} />
+                  <DataRow label="IRR Impact" value={String(cd.irr_impact ?? "—")} />
+                </div>
+              </section>
+            );
+          })()}
 
           {/* Security Change */}
-          {p.category === "Security Change" && p.category_data && (
-            <section>
-              <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
-                Security Change Details
-              </h3>
-              <div className="space-y-2">
-                <DataRowFull label="Existing Security" value={String(p.category_data.existing_security ?? "—")} />
-                <DataRowFull label="Proposed Change" value={String(p.category_data.proposed_change ?? "—")} />
-                {p.category_data.ltv_impact && (
-                  <DataRowFull label="LTV Impact" value={String(p.category_data.ltv_impact)} />
-                )}
-              </div>
-            </section>
-          )}
+          {p.category === "Security Change" && p.category_data && (() => {
+            const cd = p.category_data as Record<string, string | undefined>;
+            return (
+              <section>
+                <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
+                  Security Change Details
+                </h3>
+                <div className="space-y-2">
+                  <DataRowFull label="Existing Security" value={String(cd.existing_security ?? "—")} />
+                  <DataRowFull label="Proposed Change" value={String(cd.proposed_change ?? "—")} />
+                  {cd.ltv_impact && (
+                    <DataRowFull label="LTV Impact" value={String(cd.ltv_impact)} />
+                  )}
+                </div>
+              </section>
+            );
+          })()}
 
           {/* Risk Indicators */}
           <section>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useMeeting } from "@/context/MeetingContext";
 import { useAuth } from "@/context/AuthContext";
 import { cn, formatDate } from "@/lib/utils";
-import { FilterState, ResolutionStatus, SortOption, IRGGrade, CIBStatus } from "@/types";
+import { FilterState, ResolutionStatus, SortOption, IRGGrade, CIBStatus, Division, Category } from "@/types";
 import { Search, X, SlidersHorizontal, Moon, Sun, ChevronDown } from "lucide-react";
 
 const RESOLUTIONS: ResolutionStatus[] = ["Approved", "Approved (Board)", "Deferred", "Declined", "Pending"];

@@ -1,9 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["pdfjs-dist"],
-  },
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   webpack: (config) => {
     config.resolve.alias.canvas = false;
     config.resolve.alias.encoding = false;
