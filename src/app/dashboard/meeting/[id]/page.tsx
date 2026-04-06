@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMeeting } from "@/context/MeetingContext";
 import { useAuth } from "@/context/AuthContext";
@@ -13,16 +13,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Lock,
+  Unlock,
   Mic,
   MicOff,
   Video,
   VideoOff,
-  Monitor,
   Radio,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// Simulated participants
 const DEMO_PARTICIPANTS: Participant[] = [
   {
     user_id: "usr_admin_001",
@@ -62,8 +61,14 @@ export default function MeetingRoomPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isAdmin } = useAuth();
-  const { meetings, getMeetingProposals, updateResolution, focusedProposalId, setFocusedProposalId } =
-    useMeeting();
+  const {
+    meetings,
+    getMeetingProposals,
+    updateResolution,
+    focusedProposalId,
+    setFocusedProposalId,
+    toggleLock,
+  } = useMeeting();
 
   const meetingId = params.id as string;
   const meeting = meetings.find((m) => m.id === meetingId);
@@ -74,10 +79,11 @@ export default function MeetingRoomPage() {
   const [muted, setMuted] = useState(false);
   const [videoOn, setVideoOn] = useState(false);
   const [participants] = useState<Participant[]>(DEMO_PARTICIPANTS);
-  const [isLocked, setIsLocked] = useState(meeting?.status === "locked");
   const [elapsedTime, setElapsedTime] = useState(0);
 
-  // Timer
+  // Derive lock state from meeting status in context
+  const isLocked = meeting?.status === "locked";
+
   useEffect(() => {
     if (meeting?.status === "active") {
       const interval = setInterval(() => setElapsedTime((t) => t + 1), 1000);
@@ -86,7 +92,9 @@ export default function MeetingRoomPage() {
   }, [meeting]);
 
   const formatTime = (s: number) =>
-    `${String(Math.floor(s / 3600)).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+    `${String(Math.floor(s / 3600)).padStart(2, "0")}:${String(
+      Math.floor((s % 3600) / 60)
+    ).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   if (!meeting) {
     return (
@@ -107,15 +115,16 @@ export default function MeetingRoomPage() {
     setSelectedProposal(proposal);
   };
 
-  const handleLockMeeting = () => {
-    setIsLocked(true);
-    toast.success("Meeting locked. No further edits allowed.");
+  const handleToggleLock = () => {
+    toggleLock(meetingId);
+    toast.success(isLocked ? "Meeting unlocked." : "Meeting locked. No further edits allowed.");
   };
 
   const navigateProposal = (dir: "prev" | "next") => {
-    const next = dir === "next"
-      ? Math.min(currentIndex + 1, proposals.length - 1)
-      : Math.max(currentIndex - 1, 0);
+    const next =
+      dir === "next"
+        ? Math.min(currentIndex + 1, proposals.length - 1)
+        : Math.max(currentIndex - 1, 0);
     setCurrentIndex(next);
     setFocusedProposalId(proposals[next]?.id ?? null);
     setSelectedProposal(proposals[next] ?? null);
@@ -196,27 +205,34 @@ export default function MeetingRoomPage() {
           >
             {videoOn ? <Video size={14} /> : <VideoOff size={14} />}
           </button>
-          {isAdmin && !isLocked && (
+          {isAdmin && (
             <button
-              onClick={handleLockMeeting}
-              className="flex items-center gap-1 px-3 py-1.5 bg-amber/20 border border-amber/40 rounded text-xs text-amber hover:bg-amber hover:text-white transition-all"
+              onClick={handleToggleLock}
+              className={cn(
+                "flex items-center gap-1 px-3 py-1.5 rounded border text-xs transition-all",
+                isLocked
+                  ? "bg-amber/20 border-amber/40 text-amber hover:bg-amber hover:text-white"
+                  : "bg-sme/20 border-sme/40 text-sme hover:bg-sme hover:text-white"
+              )}
             >
-              <Lock size={11} /> Lock Meeting
+              {isLocked ? (
+                <>
+                  <Unlock size={11} /> Unlock Meeting
+                </>
+              ) : (
+                <>
+                  <Lock size={11} /> Lock Meeting
+                </>
+              )}
             </button>
-          )}
-          {isLocked && (
-            <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-mono text-amber/80 border border-amber/30 rounded">
-              <Lock size={10} /> Locked
-            </span>
           )}
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left: proposal navigator */}
-        <div className="w-[380px] flex-shrink-0 border-r border-border bg-bg overflow-y-auto sidebar-scroll">
-          {/* Navigation header */}
-          <div className="sticky top-0 bg-white border-b border-border px-4 py-2.5 flex items-center justify-between z-10">
+        <div className="w-[360px] flex-shrink-0 border-r border-border bg-bg overflow-y-auto sidebar-scroll">
+          <div className="sticky top-0 bg-surface border-b border-border px-4 py-2.5 flex items-center justify-between z-10">
             <div className="text-xs font-mono text-ink-muted">
               {currentIndex + 1} / {proposals.length} proposals
             </div>
@@ -224,14 +240,14 @@ export default function MeetingRoomPage() {
               <button
                 onClick={() => navigateProposal("prev")}
                 disabled={currentIndex === 0}
-                className="p-1 rounded hover:bg-border-soft disabled:opacity-30 transition-colors"
+                className="p-1 rounded hover:bg-surface-raised disabled:opacity-30 transition-colors"
               >
                 <ChevronLeft size={14} />
               </button>
               <button
                 onClick={() => navigateProposal("next")}
                 disabled={currentIndex === proposals.length - 1}
-                className="p-1 rounded hover:bg-border-soft disabled:opacity-30 transition-colors"
+                className="p-1 rounded hover:bg-surface-raised disabled:opacity-30 transition-colors"
               >
                 <ChevronRight size={14} />
               </button>
@@ -248,17 +264,17 @@ export default function MeetingRoomPage() {
                   proposal={p}
                   onSelect={handleFocus}
                   isFocused={p.id === focusedProposalId}
+                  viewMode="grid"
                 />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right: main view */}
-        <div className="flex-1 overflow-y-auto p-6">
+        {/* Center: presenting view */}
+        <div className="flex-1 overflow-y-auto p-6 bg-bg">
           {currentProposal ? (
             <div className="max-w-2xl mx-auto">
-              {/* Currently presenting banner */}
               <div className="flex items-center gap-2 mb-4">
                 <span className="flex items-center gap-1.5 text-xs font-mono text-sme bg-sme-light border border-sme-border px-2.5 py-1 rounded-full">
                   <Radio size={10} className="animate-pulse" />
@@ -267,12 +283,14 @@ export default function MeetingRoomPage() {
                 <span className="text-sm text-ink-muted">{currentProposal.proposal_code}</span>
               </div>
 
-              {/* Expanded view of current proposal */}
-              <div className="bg-white border border-border rounded-lg overflow-hidden shadow-card">
-                {/* Dark header */}
+              <div className="bg-surface border border-border rounded-lg overflow-hidden shadow-card">
                 <div className="bg-ink-black px-6 py-5">
-                  <div className="text-xs font-mono text-white/40 mb-1">{currentProposal.proposal_code}</div>
-                  <h2 className="text-xl font-semibold text-white mb-2">{currentProposal.client_name}</h2>
+                  <div className="text-xs font-mono text-white/40 mb-1">
+                    {currentProposal.proposal_code}
+                  </div>
+                  <h2 className="text-xl font-semibold text-white mb-2">
+                    {currentProposal.client_name}
+                  </h2>
                   {currentProposal.group_name && (
                     <p className="text-sm text-white/50">{currentProposal.group_name}</p>
                   )}
@@ -291,7 +309,6 @@ export default function MeetingRoomPage() {
                   </div>
                 </div>
 
-                {/* Quick metrics */}
                 <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
                   {[
                     {
@@ -305,7 +322,12 @@ export default function MeetingRoomPage() {
                     },
                     { label: "IRG Grade", value: currentProposal.irg_grade ?? "—" },
                     { label: "CIB Status", value: currentProposal.cib_status ?? "—" },
-                    { label: "Rate", value: currentProposal.interest_rate ? `${currentProposal.interest_rate}%` : "—" },
+                    {
+                      label: "Rate",
+                      value: currentProposal.interest_rate
+                        ? `${currentProposal.interest_rate}%`
+                        : "—",
+                    },
                   ].map((m) => (
                     <div key={m.label} className="px-5 py-3">
                       <div className="text-[9px] font-mono uppercase tracking-widest text-ink-subtle mb-0.5">
@@ -316,7 +338,6 @@ export default function MeetingRoomPage() {
                   ))}
                 </div>
 
-                {/* Resolution zone */}
                 <div className="p-5">
                   {currentProposal.resolution !== "Pending" ? (
                     <div>
@@ -327,7 +348,7 @@ export default function MeetingRoomPage() {
                         ✓ {currentProposal.resolution}
                       </div>
                       {currentProposal.resolution_note && (
-                        <p className="text-sm text-ink bg-border-soft rounded px-3 py-2">
+                        <p className="text-sm text-ink bg-surface-raised rounded px-3 py-2">
                           {currentProposal.resolution_note}
                         </p>
                       )}
@@ -338,9 +359,7 @@ export default function MeetingRoomPage() {
                       onSave={updateResolution}
                     />
                   ) : (
-                    <div className="text-sm text-ink-muted italic">
-                      Awaiting resolution…
-                    </div>
+                    <div className="text-sm text-ink-muted italic">Awaiting resolution…</div>
                   )}
                 </div>
               </div>
@@ -353,7 +372,7 @@ export default function MeetingRoomPage() {
         </div>
 
         {/* Right: participants panel */}
-        <div className="w-[200px] flex-shrink-0 border-l border-border bg-white overflow-y-auto">
+        <div className="w-[200px] flex-shrink-0 border-l border-border bg-surface overflow-y-auto">
           <div className="px-3 py-2.5 border-b border-border-soft">
             <p className="text-[10px] font-mono uppercase tracking-widest text-ink-subtle">
               Participants ({participants.length})
@@ -365,7 +384,7 @@ export default function MeetingRoomPage() {
                 key={pt.user_id}
                 className={cn(
                   "flex items-center gap-2 px-2 py-1.5 rounded",
-                  pt.user_id === user?.id && "bg-border-soft"
+                  pt.user_id === user?.id && "bg-surface-raised"
                 )}
               >
                 <div className="relative">
@@ -383,13 +402,15 @@ export default function MeetingRoomPage() {
                   </div>
                   <span
                     className={cn(
-                      "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white",
+                      "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-surface",
                       pt.is_online ? "bg-sme" : "bg-border"
                     )}
                   />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-medium text-ink-black truncate">{pt.name.split(" ")[0]}</div>
+                  <div className="text-xs font-medium text-ink-black truncate">
+                    {pt.name.split(" ")[0]}
+                  </div>
                   <div className="text-[9px] font-mono text-ink-subtle capitalize">{pt.role}</div>
                 </div>
               </div>
@@ -397,6 +418,11 @@ export default function MeetingRoomPage() {
           </div>
         </div>
       </div>
+
+      {/* Detail panel — opens when card is clicked in proposal list */}
+      {selectedProposal && (
+        <DetailPanel proposal={selectedProposal} onClose={() => setSelectedProposal(null)} />
+      )}
     </div>
   );
 }
@@ -412,10 +438,29 @@ function QuickResolutionForm({
   const [note, setNote] = useState("");
 
   const options: Array<{ value: Proposal["resolution"]; label: string; color: string }> = [
-    { value: "Approved", label: "✓ Approved", color: "bg-sme-light border-sme-border text-sme hover:bg-sme hover:text-white" },
-    { value: "Approved (Board)", label: "⚡ Board Approval", color: "bg-board-light border-board-border text-board hover:bg-board hover:text-white" },
-    { value: "Deferred", label: "⏸ Deferred", color: "bg-amber-light border-amber-border text-amber hover:bg-amber hover:text-white" },
-    { value: "Declined", label: "✗ Declined", color: "bg-red-light border-red-mid text-red-dark hover:bg-red hover:text-white" },
+    {
+      value: "Approved",
+      label: "✓ Approved",
+      color:
+        "bg-sme-light border-sme-border text-sme hover:bg-sme hover:text-white",
+    },
+    {
+      value: "Approved (Board)",
+      label: "⚡ Board Approval",
+      color:
+        "bg-board-light border-board-border text-board hover:bg-board hover:text-white",
+    },
+    {
+      value: "Deferred",
+      label: "⏸ Deferred",
+      color:
+        "bg-amber-light border-amber-border text-amber hover:bg-amber hover:text-white",
+    },
+    {
+      value: "Declined",
+      label: "✗ Declined",
+      color: "bg-red-light border-red-mid text-red-dark hover:bg-red hover:text-white",
+    },
   ];
 
   return (
@@ -443,7 +488,7 @@ function QuickResolutionForm({
         onChange={(e) => setNote(e.target.value)}
         placeholder="Resolution notes (conditions, remarks…)"
         rows={2}
-        className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-red resize-none"
+        className="w-full border border-border rounded px-3 py-2 text-sm text-ink bg-surface focus:outline-none focus:border-red resize-none"
       />
       <button
         onClick={() => {

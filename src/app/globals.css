@@ -3,35 +3,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Light mode tokens ─────────────────────────────────────────────────────── */
 :root {
-  --red: #E8202A;
-  --red-dark: #B5141C;
-  --red-light: #FDF0F0;
-  --red-mid: #F5CECE;
-  --black: #1A1A1A;
-  --ink: #2C2C2C;
-  --muted: #6B6B6B;
-  --subtle: #9A9A9A;
-  --border: #E4E4E0;
-  --border-soft: #F0EEEA;
-  --bg: #FAFAF8;
-  --white: #FFFFFF;
+  --bg:             #FAFAF8;
+  --surface:        #FFFFFF;
+  --surface-raised: #F4F4F2;
+  --ink-black:      #1A1A1A;
+  --ink:            #2C2C2C;
+  --ink-muted:      #6B6B6B;
+  --ink-subtle:     #9A9A9A;
+  --border:         #E4E4E0;
+  --border-soft:    #F0EEEA;
 }
 
+/* ── Dark mode tokens ──────────────────────────────────────────────────────── */
 .dark {
-  --bg: #0F0F0F;
-  --white: #1C1C1C;
-  --black: #F0EEEA;
-  --ink: #E0DEDC;
-  --muted: rgba(255,255,255,0.5);
-  --subtle: rgba(255,255,255,0.3);
-  --border: rgba(255,255,255,0.08);
-  --border-soft: rgba(255,255,255,0.05);
+  --bg:             #0F0F0F;
+  --surface:        #1C1C1C;
+  --surface-raised: #242424;
+  --ink-black:      #F0EEEA;
+  --ink:            #E0DEDC;
+  --ink-muted:      rgba(255,255,255,0.55);
+  --ink-subtle:     rgba(255,255,255,0.30);
+  --border:         rgba(255,255,255,0.09);
+  --border-soft:    rgba(255,255,255,0.05);
 }
 
 @layer base {
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
+
   body {
     background-color: var(--bg);
     color: var(--ink);
@@ -39,10 +40,18 @@
     font-size: 15px;
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
 @layer components {
+  /* ── Surface card ── */
+  .card-base {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    @apply rounded-lg shadow-card hover:shadow-card-hover transition-all duration-150;
+  }
+
   /* ── Tag / Badge ── */
   .tag {
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono;
@@ -50,50 +59,50 @@
 
   /* ── Status dot ── */
   .status-dot {
-    @apply inline-block w-1.5 h-1.5 rounded-full;
+    @apply inline-block w-1.5 h-1.5 rounded-full flex-shrink-0;
   }
 
-  /* ── Card base ── */
-  .card-base {
-    @apply bg-white border border-border rounded-lg shadow-card hover:shadow-card-hover transition-shadow duration-150;
-  }
-
-  /* ── Callout ── */
+  /* ── Callout box ── */
   .callout {
     @apply border-l-4 border-red pl-4 py-2 bg-red-light rounded-r text-sm;
   }
 
   /* ── Filter pill ── */
   .filter-pill {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-ink-black/5 border border-border hover:bg-red-light hover:border-red-mid transition-colors cursor-pointer;
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-border hover:bg-red-light hover:border-red-mid transition-colors cursor-pointer;
   }
 
-  /* ── Scroll ── */
+  /* ── Scrollbar ── */
   .sidebar-scroll {
     @apply overflow-y-auto;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
   .sidebar-scroll::-webkit-scrollbar { width: 4px; }
-  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  /* ── Shimmer skeleton ── */
-  .skeleton {
-    @apply animate-pulse bg-border rounded;
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
   }
+
+  /* ── Skeleton ── */
+  .skeleton { @apply animate-pulse bg-border rounded; }
+
+  /* ── Dark-aware input ── */
+  .input-base {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    @apply rounded px-3 py-2 text-sm focus:outline-none focus:border-red transition-colors;
+  }
+  .input-base::placeholder { color: var(--ink-subtle); }
 }
 
 @layer utilities {
   .font-display { font-family: 'DM Serif Display', Georgia, serif; }
-  .font-data { font-family: 'DM Mono', monospace; }
+  .font-data    { font-family: 'DM Mono', monospace; }
 
-  /* Live pulse indicator */
-  .live-pulse {
-    @apply relative;
-  }
-  .live-pulse::after {
-    content: '';
-    @apply absolute inset-0 rounded-full bg-sme opacity-75;
-    animation: ping 1.5s cubic-bezier(0,0,0.2,1) infinite;
-  }
+  /* Division colour dots */
+  .dot-corporate { @apply bg-corporate; }
+  .dot-sme       { @apply bg-sme; }
+  .dot-consumer  { @apply bg-amber; }
 }

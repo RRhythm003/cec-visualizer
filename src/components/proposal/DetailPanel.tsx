@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Proposal, ResolutionStatus } from "@/types";
 import {
   cn,
@@ -20,14 +20,14 @@ import { useMeeting } from "@/context/MeetingContext";
 import {
   X,
   AlertCircle,
-  CheckCircle2,
   Clock,
-  FileText,
   User,
   Edit3,
   Save,
-  ExternalLink,
-  ChevronRight,
+  Paperclip,
+  Upload,
+  FileText,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -44,6 +44,38 @@ const RESOLUTIONS: ResolutionStatus[] = [
   "Pending",
 ];
 
+const DOCS_KEY = "cec_docs";
+
+interface UploadedDoc {
+  id: string;
+  name: string;
+  size: number;
+  uploadedAt: string;
+}
+
+function loadDocs(proposalId: string): UploadedDoc[] {
+  try {
+    const all: Record<string, UploadedDoc[]> = JSON.parse(
+      localStorage.getItem(DOCS_KEY) ?? "{}"
+    );
+    return all[proposalId] ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDocs(proposalId: string, docs: UploadedDoc[]) {
+  try {
+    const all: Record<string, UploadedDoc[]> = JSON.parse(
+      localStorage.getItem(DOCS_KEY) ?? "{}"
+    );
+    all[proposalId] = docs;
+    localStorage.setItem(DOCS_KEY, JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
+
 export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) {
   const { isAdmin } = useAuth();
   const { updateResolution } = useMeeting();
@@ -51,6 +83,9 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
   const [draftResolution, setDraftResolution] = useState<ResolutionStatus>(p.resolution);
   const [draftNote, setDraftNote] = useState(p.resolution_note ?? "");
   const [saving, setSaving] = useState(false);
+  const [docs, setDocs] = useState<UploadedDoc[]>(() => loadDocs(p.id));
+  const [docDragOver, setDocDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveResolution = async () => {
     setSaving(true);
@@ -61,13 +96,39 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
     toast.success("Resolution saved");
   };
 
+  const addDocFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const newDocs: UploadedDoc[] = Array.from(files).map((f) => ({
+      id: `doc_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      name: f.name,
+      size: f.size,
+      uploadedAt: new Date().toISOString(),
+    }));
+    const updated = [...docs, ...newDocs];
+    setDocs(updated);
+    saveDocs(p.id, updated);
+    toast.success(`${newDocs.length} document${newDocs.length > 1 ? "s" : ""} attached`);
+  };
+
+  const removeDoc = (id: string) => {
+    const updated = docs.filter((d) => d.id !== id);
+    setDocs(updated);
+    saveDocs(p.id, updated);
+  };
+
+  const handleDocDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDocDragOver(false);
+    addDocFiles(e.dataTransfer.files);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
       <div className="flex-1 bg-ink-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="w-[560px] max-w-[95vw] h-full bg-white overflow-y-auto shadow-panel animate-slide-in-right flex flex-col">
+      <div className="w-[560px] max-w-[95vw] h-full bg-surface overflow-y-auto shadow-panel animate-slide-in-right flex flex-col">
         {/* Dark header */}
         <div className="bg-ink-black px-6 pt-6 pb-5 flex-shrink-0">
           <div className="flex items-start justify-between mb-3">
@@ -86,9 +147,7 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
           </div>
 
           <h2 className="text-lg font-semibold text-white leading-snug mb-3">{p.client_name}</h2>
-          {p.group_name && (
-            <p className="text-sm text-white/50 mb-3">{p.group_name}</p>
-          )}
+          {p.group_name && <p className="text-sm text-white/50 mb-3">{p.group_name}</p>}
 
           <div className="flex flex-wrap gap-2">
             <span className={cn("tag text-xs", getDivisionColor(p.division))}>{p.division}</span>
@@ -118,7 +177,7 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
             </div>
           )}
 
-          {/* Two-column facility data */}
+          {/* Facility details */}
           <section>
             <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
               Facility Details
@@ -130,16 +189,12 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
               <DataRow label="Interest Rate" value={formatPercent(p.interest_rate)} />
               <DataRow label="Tenor" value={p.tenor ?? "—"} />
               <DataRow label="Processing Fee" value={p.processing_fee ?? "—"} />
-              {p.facility_type && (
-                <DataRow label="Facility Type" value={p.facility_type} />
-              )}
-              {p.fdr_requirement && (
-                <DataRow label="FDR Requirement" value={p.fdr_requirement} />
-              )}
+              {p.facility_type && <DataRow label="Facility Type" value={p.facility_type} />}
+              {p.fdr_requirement && <DataRow label="FDR Requirement" value={p.fdr_requirement} />}
             </div>
           </section>
 
-          {/* Settlement-specific */}
+          {/* Settlement specific */}
           {p.category === "Settlement" && (
             <section>
               <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
@@ -155,11 +210,7 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
                   value={p.months_of_default ? `${p.months_of_default} months` : "—"}
                 />
                 {p.provision_released !== undefined && (
-                  <DataRow
-                    label="Provision Released"
-                    value={formatCrore(p.provision_released)}
-                    bold
-                  />
+                  <DataRow label="Provision Released" value={formatCrore(p.provision_released)} bold />
                 )}
               </div>
             </section>
@@ -184,63 +235,66 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
             </section>
           )}
 
-          {/* Write-off specific */}
-          {p.category === "Write-Off" && p.category_data && (() => {
-            const cd = p.category_data as Record<string, string | undefined>;
-            return (
-              <section>
-                <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
-                  Write-Off Details
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                  <DataRow label="Write-Off Amount" value={formatCrore(p.write_off_amount)} bold />
-                  <DataRow label="Board Meeting Ref" value={String(cd.board_meeting_ref ?? "—")} />
-                  <DataRow label="ARAE Status" value={String(cd.arae_status ?? "—")} />
-                  <DataRow label="Post-WO Payments" value={String(cd.post_wo_payments ?? "—")} />
-                </div>
-              </section>
-            );
-          })()}
+          {/* Write-Off specific */}
+          {p.category === "Write-Off" && p.category_data &&
+            (() => {
+              const cd = p.category_data as Record<string, string | undefined>;
+              return (
+                <section>
+                  <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
+                    Write-Off Details
+                  </h3>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                    <DataRow label="Write-Off Amount" value={formatCrore(p.write_off_amount)} bold />
+                    <DataRow label="Board Meeting Ref" value={String(cd.board_meeting_ref ?? "—")} />
+                    <DataRow label="ARAE Status" value={String(cd.arae_status ?? "—")} />
+                    <DataRow label="Post-WO Payments" value={String(cd.post_wo_payments ?? "—")} />
+                  </div>
+                </section>
+              );
+            })()}
 
           {/* Pricing Change specific */}
-          {p.category === "Pricing Change" && p.category_data && (() => {
-            const cd = p.category_data as Record<string, string | number | undefined>;
-            return (
-              <section>
-                <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
-                  Rate Change Details
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                  <DataRow label="Existing Rate" value={`${cd.existing_rate}%`} />
-                  <DataRow label="Proposed Rate" value={`${cd.proposed_rate}%`} />
-                  {cd.approved_rate && (
-                    <DataRow label="Approved Rate" value={`${cd.approved_rate}%`} bold />
-                  )}
-                  <DataRow label="Effective Date" value={String(cd.effective_date ?? "—")} />
-                  <DataRow label="IRR Impact" value={String(cd.irr_impact ?? "—")} />
-                </div>
-              </section>
-            );
-          })()}
+          {p.category === "Pricing Change" && p.category_data &&
+            (() => {
+              const cd = p.category_data as Record<string, string | number | undefined>;
+              return (
+                <section>
+                  <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
+                    Rate Change Details
+                  </h3>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                    <DataRow label="Existing Rate" value={`${cd.existing_rate}%`} />
+                    <DataRow label="Proposed Rate" value={`${cd.proposed_rate}%`} />
+                    {cd.approved_rate && (
+                      <DataRow label="Approved Rate" value={`${cd.approved_rate}%`} bold />
+                    )}
+                    <DataRow label="Effective Date" value={String(cd.effective_date ?? "—")} />
+                    <DataRow label="IRR Impact" value={String(cd.irr_impact ?? "—")} />
+                  </div>
+                </section>
+              );
+            })()}
 
-          {/* Security Change */}
-          {p.category === "Security Change" && p.category_data && (() => {
-            const cd = p.category_data as Record<string, string | undefined>;
-            return (
-              <section>
-                <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
-                  Security Change Details
-                </h3>
-                <div className="space-y-2">
-                  <DataRowFull label="Existing Security" value={String(cd.existing_security ?? "—")} />
-                  <DataRowFull label="Proposed Change" value={String(cd.proposed_change ?? "—")} />
-                  {cd.ltv_impact && (
-                    <DataRowFull label="LTV Impact" value={String(cd.ltv_impact)} />
-                  )}
-                </div>
-              </section>
-            );
-          })()}
+          {/* Security Change specific */}
+          {p.category === "Security Change" && p.category_data &&
+            (() => {
+              const cd = p.category_data as Record<string, string | undefined>;
+              return (
+                <section>
+                  <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-3">
+                    Security Change Details
+                  </h3>
+                  <div className="space-y-2">
+                    <DataRowFull label="Existing Security" value={String(cd.existing_security ?? "—")} />
+                    <DataRowFull label="Proposed Change" value={String(cd.proposed_change ?? "—")} />
+                    {cd.ltv_impact && (
+                      <DataRowFull label="LTV Impact" value={String(cd.ltv_impact)} />
+                    )}
+                  </div>
+                </section>
+              );
+            })()}
 
           {/* Risk Indicators */}
           <section>
@@ -274,17 +328,99 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
             </div>
           </section>
 
-          {/* Security */}
+          {/* Security description */}
           {p.security_description && (
             <section>
               <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle mb-2">
                 Security Description
               </h3>
-              <p className="text-sm text-ink bg-border-soft rounded px-3 py-2 leading-relaxed">
+              <p className="text-sm text-ink bg-surface-raised rounded px-3 py-2 leading-relaxed">
                 {p.security_description}
               </p>
             </section>
           )}
+
+          {/* Supporting Documents */}
+          <section className="border-t border-border pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-mono uppercase tracking-widest text-ink-subtle flex items-center gap-1.5">
+                <Paperclip size={11} />
+                Supporting Documents
+                {docs.length > 0 && (
+                  <span className="bg-border text-ink-muted rounded-full px-1.5 text-[9px]">
+                    {docs.length}
+                  </span>
+                )}
+              </h3>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1 text-xs text-ink-muted hover:text-red transition-colors"
+              >
+                <Upload size={11} /> Attach
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => addDocFiles(e.target.files)}
+              />
+            </div>
+
+            {/* Drop zone */}
+            <div
+              onDrop={handleDocDrop}
+              onDragOver={(e) => { e.preventDefault(); setDocDragOver(true); }}
+              onDragLeave={() => setDocDragOver(false)}
+              className={cn(
+                "rounded border-2 border-dashed transition-colors",
+                docDragOver
+                  ? "border-red bg-red-light"
+                  : docs.length === 0
+                  ? "border-border p-6 flex flex-col items-center gap-2 text-center"
+                  : "border-transparent p-0"
+              )}
+            >
+              {docs.length === 0 ? (
+                <>
+                  <Paperclip size={20} className={docDragOver ? "text-red" : "text-ink-subtle"} />
+                  <p className="text-xs text-ink-muted">
+                    {docDragOver ? "Drop files here" : "Drag & drop files, or click Attach"}
+                  </p>
+                </>
+              ) : (
+                <div className={cn("space-y-1.5", docDragOver && "p-3")}>
+                  {docs.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-2.5 p-2.5 bg-surface-raised rounded border border-border group"
+                    >
+                      <FileText size={14} className="text-ink-subtle flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-ink-black truncate">{doc.name}</div>
+                        <div className="text-[10px] text-ink-subtle font-mono">
+                          {(doc.size / 1024).toFixed(0)} KB ·{" "}
+                          {new Date(doc.uploadedAt).toLocaleDateString("en-GB")}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeDoc(doc.id)}
+                        className="text-ink-subtle hover:text-red transition-colors opacity-0 group-hover:opacity-100"
+                        title="Remove"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {docDragOver && (
+                    <div className="flex items-center gap-2 p-2.5 border-2 border-dashed border-red rounded text-xs text-red font-medium">
+                      <Upload size={12} /> Drop to attach
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* Resolution section */}
           <section className="border-t border-border pt-4">
@@ -323,9 +459,9 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
                 <textarea
                   value={draftNote}
                   onChange={(e) => setDraftNote(e.target.value)}
-                  placeholder="Add resolution notes (e.g., 'Approved with 10% FDR security')"
+                  placeholder="Add resolution notes…"
                   rows={3}
-                  className="w-full border border-border rounded px-3 py-2 text-sm text-ink focus:outline-none focus:border-red transition-colors resize-none"
+                  className="w-full border border-border rounded px-3 py-2 text-sm text-ink bg-surface focus:outline-none focus:border-red transition-colors resize-none"
                 />
                 <div className="flex gap-2">
                   <button
@@ -345,12 +481,17 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
               </div>
             ) : (
               <div>
-                <div className={cn("inline-flex items-center gap-1.5 tag text-sm mb-2", getResolutionColor(p.resolution))}>
+                <div
+                  className={cn(
+                    "inline-flex items-center gap-1.5 tag text-sm mb-2",
+                    getResolutionColor(p.resolution)
+                  )}
+                >
                   <span className={cn("status-dot", getResolutionDot(p.resolution))} />
                   {p.resolution}
                 </div>
                 {p.resolution_note && (
-                  <p className="text-sm text-ink bg-border-soft rounded px-3 py-2 leading-relaxed mt-2">
+                  <p className="text-sm text-ink bg-surface-raised rounded px-3 py-2 leading-relaxed mt-2">
                     {p.resolution_note}
                   </p>
                 )}
@@ -371,7 +512,7 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
             <div className="space-y-2">
               {p.action_owners.map((ao, i) => (
                 <div key={i} className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-ink-black/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-surface-raised flex items-center justify-center">
                     <User size={11} className="text-ink-muted" />
                   </div>
                   <div>
@@ -397,7 +538,9 @@ export default function DetailPanel({ proposal: p, onClose }: DetailPanelProps) 
 function DataRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div>
-      <div className="text-[9px] font-mono uppercase tracking-wider text-ink-subtle mb-0.5">{label}</div>
+      <div className="text-[9px] font-mono uppercase tracking-wider text-ink-subtle mb-0.5">
+        {label}
+      </div>
       <div className={cn("text-sm font-mono", bold ? "text-ink-black font-semibold" : "text-ink")}>
         {value}
       </div>
@@ -408,7 +551,9 @@ function DataRow({ label, value, bold }: { label: string; value: string; bold?: 
 function DataRowFull({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[9px] font-mono uppercase tracking-wider text-ink-subtle mb-0.5">{label}</div>
+      <div className="text-[9px] font-mono uppercase tracking-wider text-ink-subtle mb-0.5">
+        {label}
+      </div>
       <div className="text-sm text-ink">{value}</div>
     </div>
   );

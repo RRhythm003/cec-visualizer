@@ -1,63 +1,81 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMeeting } from "@/context/MeetingContext";
-import { useAuth } from "@/context/AuthContext";
-import { cn, formatDate } from "@/lib/utils";
-import { FilterState, ResolutionStatus, SortOption, IRGGrade, CIBStatus, Division, Category } from "@/types";
-import { Search, X, SlidersHorizontal, Moon, Sun, ChevronDown } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
+import { FilterState, SortOption, Division, Category, ResolutionStatus } from "@/types";
+import {
+  Search,
+  X,
+  SlidersHorizontal,
+  Moon,
+  Sun,
+  ChevronDown,
+  List,
+  LayoutGrid,
+  AlignJustify,
+  CreditCard,
+} from "lucide-react";
 
-const RESOLUTIONS: ResolutionStatus[] = ["Approved", "Approved (Board)", "Deferred", "Declined", "Pending"];
-const IRG_GRADES: IRGGrade[] = ["IDLC 1", "IDLC 2", "IDLC 3", "IDLC 4", "IDLC 5", "IDLC 6", "IDLC 7"];
-const CIB_STATUSES: CIBStatus[] = ["STD", "SMA", "SS", "DF", "BL", "Unclassified"];
+export type ViewMode = "grid" | "card" | "list" | "content";
+
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "default", label: "Proposal Order (Default)" },
+  { value: "default", label: "Proposal Order" },
   { value: "exposure_high", label: "Exposure: High → Low" },
   { value: "exposure_low", label: "Exposure: Low → High" },
-  { value: "waiver_high", label: "Waiver Amount: Largest First" },
-  { value: "irg_risky", label: "IRG Risk: Riskiest First" },
-  { value: "irg_safe", label: "IRG Risk: Safest First" },
+  { value: "waiver_high", label: "Waiver: Largest First" },
+  { value: "irg_risky", label: "IRG: Riskiest First" },
+  { value: "irg_safe", label: "IRG: Safest First" },
 ];
 
-export default function TopBar() {
+const VIEW_OPTIONS: { value: ViewMode; icon: React.ReactNode; title: string }[] = [
+  { value: "grid", icon: <LayoutGrid size={13} />, title: "Grid (compact)" },
+  { value: "content", icon: <AlignJustify size={13} />, title: "Content (rows)" },
+  { value: "list", icon: <List size={13} />, title: "List (minimal)" },
+  { value: "card", icon: <CreditCard size={13} />, title: "Card (detailed)" },
+];
+
+interface TopBarProps {
+  viewMode?: ViewMode;
+  onViewChange?: (mode: ViewMode) => void;
+}
+
+export default function TopBar({ viewMode = "grid", onViewChange }: TopBarProps) {
   const { currentMeeting, filteredProposals, filters, setFilters, clearFilters, selectMeeting, meetings } =
     useMeeting();
-  const { isAdmin } = useAuth();
-  const [dark, setDark] = useState(false);
+  const { dark, toggleDark } = useTheme();
   const [showFilters, setShowFilters] = useState(false);
   const [showMeetingPicker, setShowMeetingPicker] = useState(false);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
 
   const activeFilterCount =
     filters.divisions.length +
     filters.categories.length +
     filters.resolutions.length +
-    filters.irg_grades.length +
-    filters.cib_statuses.length +
     (filters.search_query ? 1 : 0);
 
-  const toggleResolution = (r: ResolutionStatus) => {
-    const cur = filters.resolutions;
-    setFilters({ resolutions: cur.includes(r) ? cur.filter((x) => x !== r) : [...cur, r] });
-  };
+  const allActiveFilters = [
+    ...filters.divisions,
+    ...filters.categories,
+    ...filters.resolutions,
+    ...(filters.search_query ? [`"${filters.search_query}"`] : []),
+  ];
 
-  const toggleIRG = (g: IRGGrade) => {
-    const cur = filters.irg_grades;
-    setFilters({ irg_grades: cur.includes(g) ? cur.filter((x) => x !== g) : [...cur, g] });
-  };
-
-  const toggleCIB = (s: CIBStatus) => {
-    const cur = filters.cib_statuses;
-    setFilters({ cib_statuses: cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s] });
+  const removeFilter = (f: string) => {
+    if (filters.divisions.includes(f as Division))
+      setFilters({ divisions: filters.divisions.filter((d) => d !== f) });
+    else if (filters.categories.includes(f as Category))
+      setFilters({ categories: filters.categories.filter((c) => c !== f) });
+    else if (filters.resolutions.includes(f as ResolutionStatus))
+      setFilters({ resolutions: filters.resolutions.filter((r) => r !== f) });
+    else if (f.startsWith('"'))
+      setFilters({ search_query: "" });
   };
 
   return (
-    <header className="bg-white border-b border-border px-6 py-0">
+    <header className="bg-surface border-b border-border px-6 py-0">
       {/* Main bar */}
-      <div className="flex items-center gap-4 h-14">
+      <div className="flex items-center gap-3 h-14">
         {/* Meeting picker */}
         <div className="relative">
           <button
@@ -65,7 +83,7 @@ export default function TopBar() {
             className="flex items-center gap-2 px-3 py-1.5 rounded border border-border hover:border-red-mid hover:bg-red-light transition-all text-sm"
           >
             <span className="text-xs font-mono text-ink-muted">{currentMeeting?.meeting_code}</span>
-            <span className="font-medium text-ink-black truncate max-w-[180px]">
+            <span className="font-medium text-ink-black truncate max-w-[160px]">
               {currentMeeting?.title}
             </span>
             <span
@@ -84,7 +102,7 @@ export default function TopBar() {
           </button>
 
           {showMeetingPicker && (
-            <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-border rounded-lg shadow-panel z-50 overflow-hidden">
+            <div className="absolute top-full left-0 mt-1 w-80 bg-surface border border-border rounded-lg shadow-panel z-50 overflow-hidden">
               <div className="px-3 py-2 border-b border-border-soft">
                 <p className="text-xs font-mono text-ink-muted uppercase tracking-widest">Recent Meetings</p>
               </div>
@@ -97,7 +115,7 @@ export default function TopBar() {
                       setShowMeetingPicker(false);
                     }}
                     className={cn(
-                      "w-full flex items-start gap-3 px-4 py-2.5 hover:bg-border-soft transition-colors text-left",
+                      "w-full flex items-start gap-3 px-4 py-2.5 hover:bg-surface-raised transition-colors text-left",
                       currentMeeting?.id === m.id && "bg-red-light"
                     )}
                   >
@@ -126,14 +144,14 @@ export default function TopBar() {
         </div>
 
         {/* Search */}
-        <div className="flex-1 max-w-md relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+        <div className="flex-1 max-w-sm relative">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
           <input
             type="text"
             value={filters.search_query}
             onChange={(e) => setFilters({ search_query: e.target.value })}
-            placeholder="Search client, group, AG code…"
-            className="w-full pl-9 pr-8 py-1.5 text-sm border border-border rounded bg-bg focus:outline-none focus:border-red transition-colors placeholder:text-ink-subtle"
+            placeholder="Search client, code, group…"
+            className="w-full pl-8 pr-7 py-1.5 text-sm border border-border rounded bg-bg focus:outline-none focus:border-red transition-colors placeholder:text-ink-subtle text-ink"
           />
           {filters.search_query && (
             <button
@@ -158,7 +176,7 @@ export default function TopBar() {
           ))}
         </select>
 
-        {/* Advanced filters toggle */}
+        {/* Filters toggle — shows/hides active filter pills */}
         <button
           onClick={() => setShowFilters((v) => !v)}
           className={cn(
@@ -167,6 +185,7 @@ export default function TopBar() {
               ? "border-red-mid bg-red-light text-red-dark"
               : "border-border bg-bg text-ink hover:border-red-mid"
           )}
+          title="Toggle active filters"
         >
           <SlidersHorizontal size={13} />
           Filters
@@ -177,9 +196,30 @@ export default function TopBar() {
           )}
         </button>
 
+        {/* View mode buttons */}
+        {onViewChange && (
+          <div className="flex items-center gap-0.5 border border-border rounded overflow-hidden bg-bg">
+            {VIEW_OPTIONS.map(({ value, icon, title }) => (
+              <button
+                key={value}
+                onClick={() => onViewChange(value)}
+                title={title}
+                className={cn(
+                  "p-1.5 transition-colors",
+                  viewMode === value
+                    ? "bg-red text-white"
+                    : "text-ink-subtle hover:text-ink hover:bg-surface-raised"
+                )}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Dark mode */}
         <button
-          onClick={() => setDark((v) => !v)}
+          onClick={toggleDark}
           className="p-1.5 rounded border border-border text-ink-subtle hover:text-ink hover:border-red-mid transition-all"
           title="Toggle dark mode"
         >
@@ -188,105 +228,37 @@ export default function TopBar() {
 
         {/* Result count */}
         <div className="text-xs text-ink-muted font-mono whitespace-nowrap">
-          {filteredProposals.length} / {currentMeeting?.proposal_count ?? 0} proposals
+          {filteredProposals.length} / {currentMeeting?.proposal_count ?? 0}
         </div>
       </div>
 
-      {/* Advanced filter bar */}
-      {showFilters && (
-        <div className="pb-3 pt-1 border-t border-border-soft flex flex-wrap items-center gap-2">
-          {/* Resolution */}
-          <span className="text-[10px] font-mono uppercase tracking-widest text-ink-subtle">Resolution:</span>
-          {RESOLUTIONS.map((r) => (
-            <button
-              key={r}
-              onClick={() => toggleResolution(r)}
-              className={cn(
-                "text-xs px-2 py-0.5 rounded-full border transition-all font-mono",
-                filters.resolutions.includes(r)
-                  ? "bg-red-light text-red-dark border-red-mid"
-                  : "border-border text-ink-muted hover:border-red-mid"
-              )}
-            >
-              {r}
-            </button>
-          ))}
-
-          <div className="w-px h-4 bg-border" />
-
-          {/* IRG */}
-          <span className="text-[10px] font-mono uppercase tracking-widest text-ink-subtle">IRG:</span>
-          {IRG_GRADES.map((g) => (
-            <button
-              key={g}
-              onClick={() => toggleIRG(g)}
-              className={cn(
-                "text-xs px-2 py-0.5 rounded-full border transition-all font-mono",
-                filters.irg_grades.includes(g)
-                  ? "bg-red-light text-red-dark border-red-mid"
-                  : "border-border text-ink-muted hover:border-red-mid"
-              )}
-            >
-              {g}
-            </button>
-          ))}
-
-          <div className="w-px h-4 bg-border" />
-
-          {/* CIB */}
-          <span className="text-[10px] font-mono uppercase tracking-widest text-ink-subtle">CIB:</span>
-          {CIB_STATUSES.map((s) => (
-            <button
-              key={s}
-              onClick={() => toggleCIB(s)}
-              className={cn(
-                "text-xs px-2 py-0.5 rounded-full border transition-all font-mono",
-                filters.cib_statuses.includes(s)
-                  ? "bg-red-light text-red-dark border-red-mid"
-                  : "border-border text-ink-muted hover:border-red-mid"
-              )}
-            >
-              {s}
-            </button>
-          ))}
-
-          {activeFilterCount > 0 && (
-            <button
-              onClick={clearFilters}
-              className="ml-auto text-xs text-red hover:text-red-dark flex items-center gap-1"
-            >
-              <X size={11} /> Clear all
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Active filter pills */}
-      {!showFilters && activeFilterCount > 0 && (
-        <div className="pb-2 flex flex-wrap gap-1.5">
-          {[...filters.divisions, ...filters.categories, ...filters.resolutions].map((f) => (
+      {/* Active filter pills — shown when Filters is toggled ON or auto-shown when filters exist */}
+      {(showFilters && activeFilterCount > 0) && (
+        <div className="pb-2.5 flex flex-wrap items-center gap-1.5">
+          {allActiveFilters.map((f) => (
             <span
               key={f}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-light text-red-dark border border-red-mid text-xs font-mono"
             >
               {f}
-              <button
-                onClick={() => {
-                  if (filters.divisions.includes(f as Division))
-                    setFilters({ divisions: filters.divisions.filter((d) => d !== f) });
-                  if (filters.categories.includes(f as Category))
-                    setFilters({ categories: filters.categories.filter((c) => c !== f) });
-                  if (filters.resolutions.includes(f as ResolutionStatus))
-                    setFilters({ resolutions: filters.resolutions.filter((r) => r !== f) });
-                }}
-              >
+              <button onClick={() => removeFilter(f)} className="hover:text-red">
                 <X size={10} />
               </button>
             </span>
           ))}
-          <button onClick={clearFilters} className="text-xs text-red hover:text-red-dark font-mono">
+          <button
+            onClick={() => { clearFilters(); setShowFilters(false); }}
+            className="text-xs text-red hover:text-red-dark font-mono"
+          >
             Clear all
           </button>
+        </div>
+      )}
+
+      {/* No active filters message when toggle is on */}
+      {showFilters && activeFilterCount === 0 && (
+        <div className="pb-2.5 text-xs text-ink-subtle font-mono">
+          No active filters — use the sidebar or click division/category tags to filter.
         </div>
       )}
     </header>

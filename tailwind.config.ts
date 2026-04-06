@@ -10,7 +10,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // IDLC Brand Colors (exact from PRD)
+        // ── CSS-variable-backed colors (respond to .dark class) ──
+        // These use var() so dark mode works at runtime
+        surface: "var(--surface)",           // replaces bg-white on cards
+        "surface-raised": "var(--surface-raised)", // slightly elevated
+        bg: "var(--bg)",                     // page background
+
+        // ── IDLC Brand (static) ──
         red: {
           DEFAULT: "#E8202A",
           dark: "#B5141C",
@@ -18,20 +24,17 @@ const config: Config = {
           mid: "#F5CECE",
         },
         ink: {
-          DEFAULT: "#2C2C2C",
-          black: "#1A1A1A",
-          muted: "#6B6B6B",
-          subtle: "#9A9A9A",
+          DEFAULT: "var(--ink)",
+          black: "var(--ink-black)",
+          muted: "var(--ink-muted)",
+          subtle: "var(--ink-subtle)",
         },
         border: {
-          DEFAULT: "#E4E4E0",
-          soft: "#F0EEEA",
+          DEFAULT: "var(--border)",
+          soft: "var(--border-soft)",
         },
-        bg: {
-          DEFAULT: "#FAFAF8",
-          dark: "#0F0F0F",
-        },
-        // Semantic colors
+
+        // ── Semantic (static) ──
         corporate: {
           DEFAULT: "#1D4ED8",
           light: "#EFF6FF",

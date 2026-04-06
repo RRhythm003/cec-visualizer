@@ -18,6 +18,8 @@ interface MeetingContextValue {
   setFocusedProposalId: (id: string | null) => void;
   getMeetingProposals: (meetingId: string) => Proposal[];
   searchMeetings: (query: string) => Meeting[];
+  createMeeting: (name: string, date: string) => Meeting;
+  toggleLock: (meetingId: string) => void;
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -34,9 +36,22 @@ const DEFAULT_FILTERS: FilterState = {
 const MeetingContext = createContext<MeetingContextValue | null>(null);
 
 const RESOLUTIONS_KEY = "cec_resolutions";
+const EXTRA_MEETINGS_KEY = "cec_extra_meetings";
 
 export function MeetingProvider({ children }: { children: React.ReactNode }) {
-  const [meetings] = useState<Meeting[]>(DEMO_MEETINGS);
+  const [meetings, setMeetings] = useState<Meeting[]>(() => {
+    // Merge demo meetings with any user-created ones from localStorage
+    try {
+      if (typeof window !== "undefined") {
+        const extra = JSON.parse(localStorage.getItem(EXTRA_MEETINGS_KEY) ?? "[]") as Meeting[];
+        if (extra.length > 0) return [...extra, ...DEMO_MEETINGS];
+      }
+    } catch {
+      // ignore
+    }
+    return DEMO_MEETINGS;
+  });
+
   const [currentMeetingId, setCurrentMeetingId] = useState<string>("mtg_001");
   const [allProposals, setAllProposals] = useState<Proposal[]>([
     ...DEMO_PROPOSALS,
@@ -185,7 +200,6 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
             : p
         )
       );
-      // Persist
       try {
         const saved = localStorage.getItem(RESOLUTIONS_KEY);
         const resMap = saved ? JSON.parse(saved) : {};
@@ -217,6 +231,76 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
     [meetings]
   );
 
+  const createMeeting = useCallback(
+    (name: string, date: string): Meeting => {
+      // Generate meeting code: CEC{YYMMDD}-{4-digit-seq}
+      const d = new Date(date || new Date().toISOString().slice(0, 10));
+      const yy = String(d.getFullYear()).slice(-2);
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+
+      const maxSeq = meetings.reduce((max, m) => {
+        const match = m.meeting_code.match(/-(\d{4})$/);
+        return match ? Math.max(max, parseInt(match[1])) : max;
+      }, 68);
+
+      const seq = String(maxSeq + 1).padStart(4, "0");
+      const meeting_code = `CEC${yy}${mm}${dd}-${seq}`;
+
+      const formattedDate = d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+
+      const now = new Date().toISOString();
+      const newMeeting: Meeting = {
+        id: `mtg_${Date.now()}`,
+        meeting_code,
+        title: name.trim() || `CEC Meeting — ${formattedDate}`,
+        date: date || now.slice(0, 10),
+        status: "published",
+        admin_user_id: "usr_admin_001",
+        proposal_count: 0,
+        summary: {
+          total: 0,
+          approved: 0,
+          deferred: 0,
+          declined: 0,
+          board_pending: 0,
+          corporate: 0,
+          sme: 0,
+          consumer: 0,
+        },
+        created_at: now,
+        updated_at: now,
+      };
+
+      setMeetings((prev) => [newMeeting, ...prev]);
+
+      try {
+        const extra = JSON.parse(localStorage.getItem(EXTRA_MEETINGS_KEY) ?? "[]") as Meeting[];
+        extra.unshift(newMeeting);
+        localStorage.setItem(EXTRA_MEETINGS_KEY, JSON.stringify(extra));
+      } catch {
+        // ignore
+      }
+
+      return newMeeting;
+    },
+    [meetings]
+  );
+
+  const toggleLock = useCallback((meetingId: string) => {
+    setMeetings((prev) =>
+      prev.map((m) => {
+        if (m.id !== meetingId) return m;
+        const newStatus = m.status === "locked" ? "published" : "locked";
+        return { ...m, status: newStatus, updated_at: new Date().toISOString() };
+      })
+    );
+  }, []);
+
   return (
     <MeetingContext.Provider
       value={{
@@ -233,6 +317,8 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
         setFocusedProposalId,
         getMeetingProposals,
         searchMeetings,
+        createMeeting,
+        toggleLock,
       }}
     >
       {children}
