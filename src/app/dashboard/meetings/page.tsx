@@ -14,7 +14,6 @@ import {
 import {
   Search,
   Calendar,
-  Archive,
   Lock,
   CheckCircle2,
   Clock,
@@ -123,7 +122,7 @@ export default function MeetingsPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       {/* Page header */}
-      <div className="bg-white border-b border-border px-6 py-5">
+      <div className="bg-surface border-b border-border px-6 py-5">
         <h1 className="font-display text-2xl text-ink-black mb-0.5">Meetings</h1>
         <p className="text-sm text-ink-muted">
           CEC meeting history, minutes, and decisions — {meetings.length} sessions on record
@@ -210,11 +209,6 @@ export default function MeetingsPage() {
                     <ChevronRight size={14} className="text-ink-muted" />
                   )}
                   <span className="font-display text-xl text-ink-black">{group.year}</span>
-                  {group.isArchived && (
-                    <span className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest text-board bg-board-light border border-board-border px-1.5 py-0.5 rounded-full">
-                      <Archive size={8} /> Auto-Archived
-                    </span>
-                  )}
                 </div>
                 <div className="text-xs text-ink-subtle font-mono">
                   {group.meetings.length} meetings
@@ -275,7 +269,7 @@ function MeetingHistoryCard({
   const statusConfig = {
     active: { icon: <Radio size={12} />, label: "Live", cls: "text-sme bg-sme-light border-sme-border" },
     locked: { icon: <Lock size={12} />, label: "Locked", cls: "text-amber bg-amber-light border-amber-border" },
-    archived: { icon: <Archive size={12} />, label: "Archived", cls: "text-board bg-board-light border-board-border" },
+    archived: { icon: <Lock size={12} />, label: "Archived", cls: "text-board bg-board-light border-board-border" },
     published: { icon: <Eye size={12} />, label: "Published", cls: "text-corporate bg-corporate-light border-corporate-border" },
     draft: { icon: <Clock size={12} />, label: "Draft", cls: "text-ink-muted bg-border-soft border-border" },
   };
@@ -283,7 +277,7 @@ function MeetingHistoryCard({
   const sc = statusConfig[m.status] ?? statusConfig.draft;
 
   return (
-    <div className="bg-white border border-border rounded-lg overflow-hidden hover:border-red-mid transition-colors">
+    <div className="bg-surface border border-border rounded-lg overflow-hidden hover:border-red-mid transition-colors">
       <div className="px-5 py-4">
         <div className="flex items-start gap-4">
           {/* Date block */}
@@ -341,7 +335,12 @@ function MeetingHistoryCard({
             )}
             <button
               onClick={onView}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-red hover:bg-red-dark text-white rounded text-xs font-medium transition-colors"
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors",
+                m.status === "active"
+                  ? "bg-red hover:bg-red-dark text-white btn-join-pulse"
+                  : "border border-border hover:border-red-mid text-ink-muted hover:text-red bg-transparent"
+              )}
             >
               <Eye size={11} />
               {m.status === "active" ? "Join" : "View"}

@@ -17,15 +17,16 @@
 }
 
 /* ── Dark mode tokens ──────────────────────────────────────────────────────── */
+/* ML-02: #0F0F0F page bg, #222 surface, #2A2A2A raised — clear depth hierarchy */
 .dark {
   --bg:             #0F0F0F;
-  --surface:        #1C1C1C;
-  --surface-raised: #242424;
+  --surface:        #222222;
+  --surface-raised: #2A2A2A;
   --ink-black:      #F0EEEA;
   --ink:            #E0DEDC;
-  --ink-muted:      rgba(255,255,255,0.55);
-  --ink-subtle:     rgba(255,255,255,0.30);
-  --border:         rgba(255,255,255,0.09);
+  --ink-muted:      rgba(255,255,255,0.60);
+  --ink-subtle:     rgba(255,255,255,0.35);
+  --border:         rgba(255,255,255,0.10);
   --border-soft:    rgba(255,255,255,0.05);
 }
 
@@ -105,4 +106,47 @@
   .dot-corporate { @apply bg-corporate; }
   .dot-sme       { @apply bg-sme; }
   .dot-consumer  { @apply bg-amber; }
+}
+
+/* ── DM-02: Dark mode badge overrides ─────────────────────────────────────── */
+/* Static Tailwind utility classes use light-mode fills;
+   these overrides make division/category badges legible on dark surfaces */
+.dark .tag-corporate-div,
+.dark [class*="bg-corporate-light"] {
+  background-color: rgba(29, 78, 216, 0.18) !important;
+  color: #93C5FD !important;
+  border-color: rgba(29, 78, 216, 0.30) !important;
+}
+.dark .tag-sme-div,
+.dark [class*="bg-sme-light"] {
+  background-color: rgba(21, 128, 61, 0.18) !important;
+  color: #6EE7B7 !important;
+  border-color: rgba(21, 128, 61, 0.30) !important;
+}
+.dark .tag-amber-div,
+.dark [class*="bg-amber-light"] {
+  background-color: rgba(180, 83, 9, 0.18) !important;
+  color: #FCD34D !important;
+  border-color: rgba(180, 83, 9, 0.30) !important;
+}
+.dark .tag-board-div,
+.dark [class*="bg-board-light"] {
+  background-color: rgba(124, 58, 237, 0.18) !important;
+  color: #C4B5FD !important;
+  border-color: rgba(124, 58, 237, 0.30) !important;
+}
+.dark .tag-red-div,
+.dark [class*="bg-red-light"] {
+  background-color: rgba(232, 32, 42, 0.15) !important;
+  color: #FCA5A5 !important;
+  border-color: rgba(232, 32, 42, 0.25) !important;
+}
+
+/* ── Join button pulse animation ─────────────────────────────────────────── */
+@keyframes join-pulse {
+  0%, 100% { box-shadow: 0 0 0 0px rgba(232,32,42,0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(232,32,42,0.0); }
+}
+.btn-join-pulse {
+  animation: join-pulse 2s ease-in-out infinite;
 }

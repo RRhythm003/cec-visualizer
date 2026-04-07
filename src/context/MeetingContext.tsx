@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Meeting, Proposal, FilterState, SortOption } from "@/types";
-import { DEMO_MEETINGS, DEMO_PROPOSALS, LIVE_PROPOSALS } from "@/lib/data/demo-proposals";
 
 interface MeetingContextValue {
   meetings: Meeting[];
@@ -40,23 +39,29 @@ const EXTRA_MEETINGS_KEY = "cec_extra_meetings";
 
 export function MeetingProvider({ children }: { children: React.ReactNode }) {
   const [meetings, setMeetings] = useState<Meeting[]>(() => {
-    // Merge demo meetings with any user-created ones from localStorage
     try {
       if (typeof window !== "undefined") {
         const extra = JSON.parse(localStorage.getItem(EXTRA_MEETINGS_KEY) ?? "[]") as Meeting[];
-        if (extra.length > 0) return [...extra, ...DEMO_MEETINGS];
+        return extra;
       }
     } catch {
       // ignore
     }
-    return DEMO_MEETINGS;
+    return [];
   });
 
-  const [currentMeetingId, setCurrentMeetingId] = useState<string>("mtg_001");
-  const [allProposals, setAllProposals] = useState<Proposal[]>([
-    ...DEMO_PROPOSALS,
-    ...LIVE_PROPOSALS,
-  ]);
+  const [currentMeetingId, setCurrentMeetingId] = useState<string>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const extra = JSON.parse(localStorage.getItem(EXTRA_MEETINGS_KEY) ?? "[]") as Meeting[];
+        return extra[0]?.id ?? "";
+      }
+    } catch {
+      // ignore
+    }
+    return "";
+  });
+  const [allProposals, setAllProposals] = useState<Proposal[]>([]);
   const [filters, setFiltersState] = useState<FilterState>(DEFAULT_FILTERS);
   const [focusedProposalId, setFocusedProposalId] = useState<string | null>(null);
 
@@ -242,7 +247,7 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
       const maxSeq = meetings.reduce((max, m) => {
         const match = m.meeting_code.match(/-(\d{4})$/);
         return match ? Math.max(max, parseInt(match[1])) : max;
-      }, 68);
+      }, 0);
 
       const seq = String(maxSeq + 1).padStart(4, "0");
       const meeting_code = `CEC${yy}${mm}${dd}-${seq}`;

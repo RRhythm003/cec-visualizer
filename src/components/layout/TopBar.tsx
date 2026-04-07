@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMeeting } from "@/context/MeetingContext";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
@@ -48,6 +48,15 @@ export default function TopBar({ viewMode = "grid", onViewChange }: TopBarProps)
   const [showFilters, setShowFilters] = useState(false);
   const [showMeetingPicker, setShowMeetingPicker] = useState(false);
 
+  useEffect(() => {
+    if (!showMeetingPicker) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowMeetingPicker(false);
+    };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [showMeetingPicker]);
+
   const activeFilterCount =
     filters.divisions.length +
     filters.categories.length +
@@ -80,11 +89,15 @@ export default function TopBar({ viewMode = "grid", onViewChange }: TopBarProps)
         <div className="relative">
           <button
             onClick={() => setShowMeetingPicker((v) => !v)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded border border-border hover:border-red-mid hover:bg-red-light transition-all text-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border hover:border-red-mid hover:bg-red-light transition-all text-sm"
           >
-            <span className="text-xs font-mono text-ink-muted">{currentMeeting?.meeting_code}</span>
-            <span className="font-medium text-ink-black truncate max-w-[160px]">
-              {currentMeeting?.title}
+            <span className="text-[9px] font-mono bg-border-soft text-ink-subtle px-1.5 py-0.5 rounded">
+              {currentMeeting?.meeting_code ?? "—"}
+            </span>
+            <span className="font-medium text-ink truncate max-w-[120px]">
+              {currentMeeting?.date
+                ? new Date(currentMeeting.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                : "No meeting selected"}
             </span>
             <span
               className={cn(
@@ -96,13 +109,15 @@ export default function TopBar({ viewMode = "grid", onViewChange }: TopBarProps)
                   : "bg-border text-ink-muted"
               )}
             >
-              {currentMeeting?.status}
+              {currentMeeting?.status ?? "none"}
             </span>
             <ChevronDown size={12} className="text-ink-subtle" />
           </button>
 
           {showMeetingPicker && (
-            <div className="absolute top-full left-0 mt-1 w-80 bg-surface border border-border rounded-lg shadow-panel z-50 overflow-hidden">
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowMeetingPicker(false)} />
+              <div className="absolute top-full left-0 mt-1 w-80 bg-surface border border-border rounded-lg shadow-panel z-50 overflow-hidden">
               <div className="px-3 py-2 border-b border-border-soft">
                 <p className="text-xs font-mono text-ink-muted uppercase tracking-widest">Recent Meetings</p>
               </div>
@@ -140,8 +155,12 @@ export default function TopBar({ viewMode = "grid", onViewChange }: TopBarProps)
                 ))}
               </div>
             </div>
+            </>
           )}
         </div>
+
+        {/* separator */}
+        <div className="w-px h-5 bg-border flex-shrink-0" />
 
         {/* Search */}
         <div className="flex-1 max-w-sm relative">
@@ -176,6 +195,9 @@ export default function TopBar({ viewMode = "grid", onViewChange }: TopBarProps)
           ))}
         </select>
 
+        {/* separator */}
+        <div className="w-px h-5 bg-border flex-shrink-0" />
+
         {/* Filters toggle — shows/hides active filter pills */}
         <button
           onClick={() => setShowFilters((v) => !v)}
@@ -195,6 +217,9 @@ export default function TopBar({ viewMode = "grid", onViewChange }: TopBarProps)
             </span>
           )}
         </button>
+
+        {/* separator */}
+        <div className="w-px h-5 bg-border flex-shrink-0" />
 
         {/* View mode buttons */}
         {onViewChange && (

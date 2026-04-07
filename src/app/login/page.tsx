@@ -3,15 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { DEMO_CREDENTIALS } from "@/lib/data/demo-users";
 import toast from "react-hot-toast";
-
-type LoginTab = "idlc" | "demo";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<LoginTab>("idlc");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,17 +23,6 @@ export default function LoginPage() {
       router.replace("/dashboard");
     } else {
       setError(result.error ?? "Login failed.");
-    }
-    setLoading(false);
-  };
-
-  const quickLogin = async (cred: (typeof DEMO_CREDENTIALS)[0]) => {
-    setLoading(true);
-    setError("");
-    const result = await login(cred.email, cred.password);
-    if (result.success) {
-      toast.success(`Signed in as ${cred.label}`);
-      router.replace("/dashboard");
     }
     setLoading(false);
   };
@@ -96,117 +81,58 @@ export default function LoginPage() {
 
           <h2 className="font-display text-3xl text-ink-black mb-1">Sign in</h2>
           <p className="text-ink-muted text-sm mb-6">
-            Use your IDLC credentials or a UAT demo account.
+            Use your IDLC email and 6-digit Employee CIF to access CEC Visualizer.
           </p>
 
-          {/* Tabs */}
-          <div className="flex rounded-sm border border-border overflow-hidden mb-6">
-            <button
-              onClick={() => { setTab("idlc"); setError(""); }}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                tab === "idlc"
-                  ? "bg-ink-black text-white"
-                  : "bg-surface text-ink-muted hover:bg-surface-raised"
-              }`}
-            >
-              IDLC Login
-            </button>
-            <button
-              onClick={() => { setTab("demo"); setError(""); }}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                tab === "demo"
-                  ? "bg-ink-black text-white"
-                  : "bg-surface text-ink-muted hover:bg-surface-raised"
-              }`}
-            >
-              Demo / UAT
-            </button>
-          </div>
-
-          {/* ── IDLC Login tab ── */}
-          {tab === "idlc" && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="bg-corporate-light border border-corporate-border rounded p-3 text-xs text-corporate leading-relaxed">
-                <strong>IDLC Staff:</strong> Enter your <code className="font-mono bg-corporate-light px-1">@idlc.com</code> email
-                and your 6-digit Employee CIF as password.
-              </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-widest text-ink-muted mb-1.5">
-                  IDLC Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="yourname@idlc.com"
-                  required
-                  className="input-base w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-widest text-ink-muted mb-1.5">
-                  Employee CIF (6 digits)
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="e.g. 572623"
-                  maxLength={6}
-                  pattern="\d{6}"
-                  required
-                  className="input-base w-full font-mono tracking-widest"
-                />
-              </div>
-              {error && (
-                <p className="text-red text-sm bg-red-light border border-red-mid rounded px-3 py-2">
-                  {error}
-                </p>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-red hover:bg-red-dark text-white font-medium py-3 rounded transition-colors disabled:opacity-60"
-              >
-                {loading ? "Signing in…" : "Sign in with IDLC"}
-              </button>
-              <p className="text-xs text-center text-ink-subtle">
-                Registered access only · Once HR database is synced, all CEC participants will be auto-enrolled
-              </p>
-            </form>
-          )}
-
-          {/* ── Demo / UAT tab ── */}
-          {tab === "demo" && (
-            <div className="space-y-3">
-              <p className="text-xs text-ink-muted mb-1">
-                One-click login for user acceptance testing. Click any account below:
-              </p>
-              {DEMO_CREDENTIALS.map((cred) => (
-                <button
-                  key={cred.email}
-                  onClick={() => quickLogin(cred)}
-                  disabled={loading}
-                  className="w-full flex items-center gap-3 p-3.5 rounded border bg-surface hover:bg-surface-raised hover:border-red-mid transition-all text-left group disabled:opacity-60"
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  <div
-                    className="w-9 h-9 rounded flex items-center justify-center text-white text-xs font-bold font-mono flex-shrink-0"
-                    style={{ background: cred.color }}
-                  >
-                    {cred.role === "admin" ? "AD" : cred.role === "approver" ? "AP" : "PR"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-ink-black">{cred.label}</div>
-                    <div className="text-xs text-ink-muted font-mono">{cred.email}</div>
-                  </div>
-                  <div className="text-xs font-mono text-ink-subtle group-hover:text-red transition-colors">
-                    {cred.password}
-                  </div>
-                </button>
-              ))}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="bg-corporate-light border border-corporate-border rounded p-3 text-xs text-corporate leading-relaxed">
+              <strong>IDLC Staff:</strong> Enter your <code className="font-mono bg-corporate-light px-1">@idlc.com</code> email
+              and your 6-digit Employee CIF as password.
             </div>
-          )}
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-widest text-ink-muted mb-1.5">
+                IDLC Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="yourname@idlc.com"
+                required
+                className="input-base w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-widest text-ink-muted mb-1.5">
+                Employee CIF (6 digits)
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="e.g. 572623"
+                maxLength={6}
+                pattern="\d{6}"
+                required
+                className="input-base w-full font-mono tracking-widest"
+              />
+            </div>
+            {error && (
+              <p className="text-red text-sm bg-red-light border border-red-mid rounded px-3 py-2">
+                {error}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red hover:bg-red-dark text-white font-medium py-3 rounded transition-colors disabled:opacity-60"
+            >
+              {loading ? "Signing in…" : "Sign in with IDLC"}
+            </button>
+            <p className="text-xs text-center text-ink-subtle">
+              Registered IDLC staff only · Contact CEC admin to get access
+            </p>
+          </form>
         </div>
       </div>
     </div>

@@ -122,7 +122,7 @@ export default function Sidebar() {
           <div>
             <button
               onClick={() => setDivExpanded((v) => !v)}
-              className="flex items-center justify-between w-full text-[10px] font-mono uppercase tracking-widest text-ink-subtle hover:text-ink-muted mb-2"
+              className="flex items-center justify-between w-full text-[10px] font-mono uppercase tracking-widest text-ink-subtle dark:text-white/35 hover:text-ink-muted mb-2"
             >
               Division
               {divExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
@@ -135,7 +135,7 @@ export default function Sidebar() {
                     "w-full flex items-center justify-between px-2.5 py-1.5 rounded text-sm transition-colors",
                     filters.divisions.length === 0 && filters.categories.length === 0
                       ? "bg-red-light text-red-dark font-medium"
-                      : "text-ink hover:bg-surface-raised"
+                      : "text-ink dark:text-white/65 hover:bg-surface-raised"
                   )}
                 >
                   <span>All Divisions</span>
@@ -152,7 +152,7 @@ export default function Sidebar() {
                         "w-full flex items-center justify-between px-2.5 py-1.5 rounded text-sm transition-colors",
                         filters.divisions.includes(div)
                           ? "bg-red-light text-red-dark font-medium"
-                          : "text-ink hover:bg-surface-raised"
+                          : "text-ink dark:text-white/65 hover:bg-surface-raised"
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -171,7 +171,7 @@ export default function Sidebar() {
           <div>
             <button
               onClick={() => setCatExpanded((v) => !v)}
-              className="flex items-center justify-between w-full text-[10px] font-mono uppercase tracking-widest text-ink-subtle hover:text-ink-muted mb-2"
+              className="flex items-center justify-between w-full text-[10px] font-mono uppercase tracking-widest text-ink-subtle dark:text-white/35 hover:text-ink-muted mb-2"
             >
               Type
               {catExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
@@ -189,7 +189,7 @@ export default function Sidebar() {
                         "w-full flex items-center justify-between px-2.5 py-1.5 rounded text-sm transition-colors",
                         filters.categories.includes(cat)
                           ? "bg-red-light text-red-dark font-medium"
-                          : "text-ink hover:bg-surface-raised"
+                          : "text-ink dark:text-white/65 hover:bg-surface-raised"
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -247,7 +247,7 @@ function NavItem({
       href={href}
       className={cn(
         "flex items-center gap-2 px-2.5 py-1.5 rounded text-sm transition-colors",
-        active ? "bg-red-light text-red-dark font-medium" : "text-ink hover:bg-surface-raised"
+        active ? "bg-red-light text-red-dark font-medium" : "text-ink dark:text-white/65 hover:bg-surface-raised"
       )}
     >
       <span className="flex-shrink-0">{icon}</span>

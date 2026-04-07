@@ -10,9 +10,9 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatCrore(value: number | undefined): string {
   if (value === undefined || value === null) return "—";
-  if (value >= 100) return `BDT ${value.toFixed(0)} Cr`;
-  if (value >= 1) return `BDT ${value.toFixed(2)} Cr`;
-  return `BDT ${(value * 100).toFixed(2)} L`;
+  if (value >= 100) return `BDT ${value.toFixed(0)} M`;
+  if (value >= 1) return `BDT ${value.toFixed(2)} M`;
+  return `BDT ${(value * 100).toFixed(2)} K`;
 }
 
 export function formatDate(dateStr: string): string {
